@@ -1,371 +1,1646 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🍪 Mega Cookie Clicker</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+// ==========================================
+// FILE: src/App.tsx
+// ==========================================
 
-    body {
-      min-height: 100vh;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
-    }
+import React, { useState, useEffect, useMemo } from "react";
+import { 
+  Sparkles, 
+  HelpCircle, 
+  RotateCcw, 
+  Search, 
+  Zap, 
+  Filter, 
+  AlertCircle, 
+  Volume2, 
+  VolumeX, 
+  Trash2, 
+  Compass, 
+  Cpu, 
+  Feather, 
+  Clock, 
+  Award,
+  Plus,
+  ArrowRight,
+  Info,
+  CheckCircle2,
+  Code,
+  Copy,
+  Download,
+  Check
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { AlchemistElement, BlendHistoryItem, Achievement } from "./types";
 
-    .stars {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      background-image: 
-        radial-gradient(2px 2px at 20px 30px, #eee, transparent),
-        radial-gradient(2px 2px at 40px 70px, #fff, transparent),
-        radial-gradient(1px 1px at 90px 40px, #ddd, transparent),
-        radial-gradient(2px 2px at 160px 120px, #fff, transparent),
-        radial-gradient(1px 1px at 230px 80px, #eee, transparent),
-        radial-gradient(2px 2px at 300px 150px, #fff, transparent),
-        radial-gradient(1px 1px at 370px 50px, #ddd, transparent),
-        radial-gradient(2px 2px at 450px 180px, #fff, transparent);
-      background-size: 500px 200px;
-      animation: twinkle 5s ease-in-out infinite;
-    }
+const INITIAL_ELEMENTS: AlchemistElement[] = [
+  { name: "Water", emoji: "💧", description: "The nourishing, shapeless primal fluid of life.", category: "Primal", color: "sky" },
+  { name: "Fire", emoji: "🔥", description: "The volatile, destructive force of alchemical transformation.", category: "Primal", color: "amber" },
+  { name: "Earth", emoji: "🪨", description: "The ancient, solid and stable soil of physical foundation.", category: "Primal", color: "slate" },
+  { name: "Air", emoji: "💨", description: "The light, invisible vital gas of floatation and motion.", category: "Primal", color: "sky" }
+];
 
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 1; }
-    }
+const CATEGORIES = ["All", "Primal", "Atmosphere", "Materials", "Flora & Fauna", "Cosmic", "Tech", "Mythic"];
 
-    .container {
-      text-align: center;
-      z-index: 10;
-    }
+const COLOR_MAP: Record<string, { bg: string; text: string; border: string; glow: string }> = {
+  sky: { bg: "bg-sky-950/40", text: "text-sky-300", border: "border-sky-500/30", glow: "shadow-sky-500/25" },
+  amber: { bg: "bg-amber-950/40", text: "text-amber-300", border: "border-amber-500/30", glow: "shadow-amber-500/25" },
+  slate: { bg: "bg-slate-900/60", text: "text-slate-300", border: "border-slate-500/30", glow: "shadow-slate-500/25" },
+  emerald: { bg: "bg-emerald-950/40", text: "text-emerald-300", border: "border-emerald-500/30", glow: "shadow-emerald-500/25" },
+  indigo: { bg: "bg-indigo-950/40", text: "text-indigo-300", border: "border-indigo-500/30", glow: "shadow-indigo-500/25" },
+  cyan: { bg: "bg-cyan-950/40", text: "text-cyan-300", border: "border-cyan-500/30", glow: "shadow-cyan-500/25" },
+  violet: { bg: "bg-violet-950/40", text: "text-violet-300", border: "border-violet-500/30", glow: "shadow-violet-500/25" },
+  rose: { bg: "bg-rose-950/40", text: "text-rose-300", border: "border-rose-500/30", glow: "shadow-rose-500/25" },
+};
 
-    h1 {
-      color: #ffd700;
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-      animation: glow 2s ease-in-out infinite alternate;
-    }
+const INITIAL_ACHIEVEMENTS: Achievement[] = [
+  { id: "apprentice", title: "The Apprentice", description: "Unlock 8 elements in your library.", condition: "8", icon: "🌱", unlocked: false },
+  { id: "scholar", title: "The High Scholar", description: "Unlock 15 elements in your library.", condition: "15", icon: "📚", unlocked: false },
+  { id: "grandmaster", title: "Ultimate Grandmaster", description: "Unlock 25 elements in your library.", condition: "25", icon: "👑", unlocked: false },
+  { id: "mythmaker", title: "Myth Maker", description: "Discover any element in the 'Mythic' category.", condition: "mythic", icon: "🦄", unlocked: false },
+  { id: "cyber_age", title: "Silicon Dawn", description: "Discover any element in the 'Tech' category.", condition: "tech", icon: "🤖", unlocked: false },
+  { id: "cosmic_mind", title: "Deep Space Void", description: "Discover any element in the 'Cosmic' category.", condition: "cosmic", icon: "🪐", unlocked: false },
+];
 
-    @keyframes glow {
-      from { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
-      to { text-shadow: 0 0 40px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4); }
-    }
-
-    .cookie-counter {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 20px 40px;
-      margin-bottom: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .count {
-      font-size: 1.8rem;
-      color: #fff;
-      font-weight: bold;
-    }
-
-    .count-number {
-      color: #ffd700;
-      font-size: 2.2rem;
-    }
-
-    .label {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 1rem;
-      margin-top: 5px;
-    }
-
-    .per-click {
-      color: #4ade80;
-      font-size: 0.9rem;
-      margin-top: 10px;
-    }
-
-    .cookie-btn {
-      width: 250px;
-      height: 250px;
-      border-radius: 50%;
-      border: none;
-      cursor: pointer;
-      position: relative;
-      background: radial-gradient(circle at 30% 30%, #d4a056 0%, #c4873d 40%, #8b5a2b 100%);
-      box-shadow: 
-        0 10px 30px rgba(0, 0, 0, 0.4),
-        inset 0 -10px 30px rgba(0, 0, 0, 0.3),
-        inset 0 10px 30px rgba(255, 255, 255, 0.2);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    .cookie-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 
-        0 15px 40px rgba(255, 215, 0, 0.3),
-        inset 0 -10px 30px rgba(0, 0, 0, 0.3),
-        inset 0 10px 30px rgba(255, 255, 255, 0.2);
-    }
-
-    .cookie-btn:active {
-      transform: scale(0.95);
-      animation: none;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-
-    .chip {
-      position: absolute;
-      width: 25px;
-      height: 20px;
-      background: radial-gradient(circle at 40% 40%, #5c3d2e 0%, #3d2518 100%);
-      border-radius: 50%;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-    }
-
-    .chip:nth-child(1) { top: 40px; left: 60px; }
-    .chip:nth-child(2) { top: 70px; left: 150px; width: 30px; height: 25px; }
-    .chip:nth-child(3) { top: 120px; left: 80px; width: 22px; height: 18px; }
-    .chip:nth-child(4) { top: 100px; left: 170px; }
-    .chip:nth-child(5) { top: 160px; left: 120px; width: 28px; height: 22px; }
-    .chip:nth-child(6) { top: 180px; left: 60px; width: 20px; height: 16px; }
-    .chip:nth-child(7) { top: 60px; left: 100px; width: 18px; height: 15px; }
-
-    .click-effect {
-      position: fixed;
-      pointer-events: none;
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #ffd700;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-      animation: floatUp 1s ease-out forwards;
-      z-index: 1000;
-    }
-
-    @keyframes floatUp {
-      0% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-100px) scale(1.5);
-      }
-    }
-
-    .mini-cookie {
-      position: fixed;
-      font-size: 2rem;
-      pointer-events: none;
-      animation: scatter 1s ease-out forwards;
-      z-index: 999;
-    }
-
-    @keyframes scatter {
-      0% {
-        opacity: 1;
-        transform: translate(0, 0) rotate(0deg) scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(var(--tx), var(--ty)) rotate(720deg) scale(0);
-      }
-    }
-
-    .stats {
-      margin-top: 30px;
-      display: flex;
-      gap: 20px;
-    }
-
-    .stat-box {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 15px 25px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .stat-label {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .stat-value {
-      color: #fff;
-      font-size: 1.3rem;
-      font-weight: bold;
-      margin-top: 5px;
-    }
-
-    .reset-btn {
-      margin-top: 30px;
-      padding: 12px 30px;
-      background: linear-gradient(135deg, #e74c3c, #c0392b);
-      color: white;
-      border: none;
-      border-radius: 25px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .reset-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
-    }
-  </style>
-</head>
-<body>
-  <div class="stars"></div>
+export default function App() {
+  // --- Game State ---
+  const [discoveredList, setDiscoveredList] = useState<AlchemistElement[]>(INITIAL_ELEMENTS);
+  const [slotA, setSlotA] = useState<AlchemistElement | null>(null);
+  const [slotB, setSlotB] = useState<AlchemistElement | null>(null);
+  const [isFusing, setIsFusing] = useState(false);
+  const [fusionStageText, setFusionStageText] = useState("");
+  const [modalResult, setModalResult] = useState<AlchemistElement | null>(null);
+  const [isNewDiscovery, setIsNewDiscovery] = useState(false);
   
-  <div class="container">
-    <h1>🍪 Mega Cookie Clicker</h1>
-    
-    <div class="cookie-counter">
-      <div class="count">
-        <span class="count-number" id="cookieCount">0</span>
-      </div>
-      <div class="label">cookies</div>
-      <div class="per-click">+10,000,000,000,000,000,000 per click!</div>
-    </div>
-    
-    <button class="cookie-btn" id="cookieBtn" aria-label="Click for cookies">
-      <div class="chip"></div>
-      <div class="chip"></div>
-      <div class="chip"></div>
-      <div class="chip"></div>
-      <div class="chip"></div>
-      <div class="chip"></div>
-      <div class="chip"></div>
-    </button>
-    
-    <div class="stats">
-      <div class="stat-box">
-        <div class="stat-label">Total Clicks</div>
-        <div class="stat-value" id="totalClicks">0</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">Cookies/Click</div>
-        <div class="stat-value">10 Quintillion</div>
-      </div>
-    </div>
-    
-    <button class="reset-btn" id="resetBtn">🔄 Reset Game</button>
-  </div>
+  // --- Filter and UI states ---
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  
+  // --- Chronicles logs, hints and achievements ---
+  const [historyList, setHistoryList] = useState<BlendHistoryItem[]>([]);
+  const [achievementsList, setAchievementsList] = useState<Achievement[]>(INITIAL_ACHIEVEMENTS);
+  const [oracleHint, setOracleHint] = useState<string | null>(null);
+  const [isQueryingHint, setIsQueryingHint] = useState(false);
+  
+  // --- System statuses ---
+  const [soundOn, setSoundOn] = useState(true);
+  const [aiEnabled, setAiEnabled] = useState(true);
 
-  <script>
-    const cookiesPerClick = BigInt('10000000000000000000');
-    let cookies = BigInt(0);
-    let totalClicks = 0;
-    
-    const cookieCount = document.getElementById('cookieCount');
-    const totalClicksEl = document.getElementById('totalClicks');
-    const cookieBtn = document.getElementById('cookieBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    
-    function formatBigNumber(n) {
-      const str = n.toString();
-      const len = str.length;
-      
-      if (len <= 6) return Number(n).toLocaleString();
-      
-      const suffixes = [
-        '', 'thousand', 'million', 'billion', 'trillion', 
-        'quadrillion', 'quintillion', 'sextillion', 'septillion',
-        'octillion', 'nonillion', 'decillion', 'undecillion',
-        'duodecillion', 'tredecillion', 'quattuordecillion'
-      ];
-      
-      const suffixIndex = Math.floor((len - 1) / 3);
-      
-      if (suffixIndex >= suffixes.length) {
-        return str.slice(0, 3) + '.' + str.slice(3, 5) + 'e' + (len - 1);
+  // --- Code Exporter States ---
+  const [isCodeScrollOpen, setIsCodeScrollOpen] = useState(false);
+  const [codeFiles, setCodeFiles] = useState<{ name: string; path: string; content: string }[]>([]);
+  const [activeCodeIndex, setActiveCodeIndex] = useState(0);
+  const [copiedFileIdx, setCopiedFileIdx] = useState<number | null>(null);
+  const [isLoadingCode, setIsLoadingCode] = useState(false);
+
+  const fetchCodeFiles = async () => {
+    setIsLoadingCode(true);
+    playSound("click");
+    try {
+      const response = await fetch("/api/code");
+      const data = await response.json();
+      if (data.files) {
+        setCodeFiles(data.files);
       }
-      
-      const divisorLen = suffixIndex * 3;
-      const wholePart = str.slice(0, len - divisorLen);
-      const decimalPart = str.slice(len - divisorLen, len - divisorLen + 2);
-      
-      if (decimalPart && parseInt(decimalPart) > 0) {
-        return `${wholePart}.${decimalPart} ${suffixes[suffixIndex]}`;
+    } catch (err) {
+      console.error("Failed to fetch codebase files", err);
+    } finally {
+      setIsLoadingCode(false);
+    }
+  };
+
+  const copyToClipboard = (content: string, index: number) => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedFileIdx(index);
+      playSound("success");
+      setTimeout(() => setCopiedFileIdx(null), 2000);
+    }).catch(() => {
+      playSound("error");
+    });
+  };
+
+  const copyAllCodeCombined = () => {
+    const combined = codeFiles.map(f => `// ==========================================\n// FILE: ${f.path}\n// ==========================================\n\n${f.content}`).join("\n\n");
+    navigator.clipboard.writeText(combined).then(() => {
+      setCopiedFileIdx(-1);
+      playSound("success");
+      setTimeout(() => setCopiedFileIdx(null), 2000);
+    }).catch(() => {
+      playSound("error");
+    });
+  };
+
+  // --- Initialize state from LocalStorage ---
+  useEffect(() => {
+    const savedDiscovered = localStorage.getItem("alchemist_discovered");
+    const savedHistory = localStorage.getItem("alchemist_history");
+    const savedAchievements = localStorage.getItem("alchemist_achievements");
+    const savedSound = localStorage.getItem("alchemist_sound");
+
+    if (savedDiscovered) {
+      try {
+        setDiscoveredList(JSON.parse(savedDiscovered));
+      } catch (e) {
+        console.error("Failed to restore saved elements", e);
       }
-      return `${wholePart} ${suffixes[suffixIndex]}`;
     }
-    
-    function createClickEffect(x, y) {
-      const effect = document.createElement('div');
-      effect.className = 'click-effect';
-      effect.textContent = '+10 Quintillion!';
-      effect.style.left = x + 'px';
-      effect.style.top = y + 'px';
-      document.body.appendChild(effect);
+    if (savedHistory) {
+      try {
+        setHistoryList(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Failed to restore saved history", e);
+      }
+    }
+    if (savedSound) {
+      setSoundOn(savedSound === "true");
+    }
+
+    // Ping simple health check
+    fetch("/api/health")
+      .then((res) => res.json())
+      .then((data) => {
+        setAiEnabled(data.geminiEnabled);
+      })
+      .catch((_) => {
+        setAiEnabled(false);
+      });
+  }, []);
+
+  // --- Keep synchronization to localStorage ---
+  const saveGameState = (list: AlchemistElement[], hist: BlendHistoryItem[]) => {
+    localStorage.setItem("alchemist_discovered", JSON.stringify(list));
+    localStorage.setItem("alchemist_history", JSON.stringify(hist));
+  };
+
+  // --- Dynamic Audio Synthesizer (Web Audio API) ---
+  const playSound = (type: "click" | "success" | "unlock" | "error" | "clean") => {
+    if (!soundOn) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = ctx.currentTime;
+
+      if (type === "click") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(320, now); // E4
+        osc.frequency.exponentialRampToValueAtTime(640, now + 0.08);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(now + 0.1);
+      } else if (type === "clean") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.linearRampToValueAtTime(150, now + 0.15);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(now + 0.15);
+      } else if (type === "success") {
+        // Melodic alchemical sweep
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + i * 0.08);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + i * 0.08 + 0.2);
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.06, now + i * 0.08 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.4);
+        });
+      } else if (type === "unlock") {
+        // Grand victory chord arpeggio
+        const frequencies = [261.63, 329.63, 392.00, 523.25, 659.25, 1046.50];
+        frequencies.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + i * 0.06);
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.05, now + i * 0.06 + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.4);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.06);
+          osc.stop(now + i * 0.06 + 0.5);
+        });
+      } else if (type === "error") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(now + 0.25);
+      }
+    } catch (_) {
+      // AudioContext blocked
+    }
+  };
+
+  // --- Filtered Elements based on search + selected tab ---
+  const filteredDiscovered = useMemo(() => {
+    return discoveredList.filter((element) => {
+      const matchesCategory = selectedCategory === "All" || element.category.toLowerCase() === selectedCategory.toLowerCase();
+      const matchesSearch = element.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            element.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            element.category.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [discoveredList, selectedCategory, searchTerm]);
+
+  // --- Place / Remove Elements inside crafting Slots ---
+  const selectElement = (element: AlchemistElement) => {
+    playSound("click");
+    if (!slotA) {
+      setSlotA(element);
+    } else if (!slotB) {
+      setSlotB(element);
+    } else {
+      // Rotate Slot B with the selected one
+      setSlotB(element);
+    }
+  };
+
+  const clearSlot = (slot: "A" | "B") => {
+    playSound("clean");
+    if (slot === "A") setSlotA(null);
+    else setSlotB(null);
+  };
+
+  const cleanWorkspace = () => {
+    playSound("clean");
+    setSlotA(null);
+    setSlotB(null);
+  };
+
+  // --- Reset Entire game progression safely ---
+  const resetGame = () => {
+    if (window.confirm("Are you sure you want to reset your Chronicles? All custom elements and achievements will be locked.")) {
+      playSound("clean");
+      setDiscoveredList(INITIAL_ELEMENTS);
+      setSlotA(null);
+      setSlotB(null);
+      setHistoryList([]);
+      setOracleHint(null);
+      localStorage.removeItem("alchemist_discovered");
+      localStorage.removeItem("alchemist_history");
+      setAchievementsList(INITIAL_ACHIEVEMENTS);
+    }
+  };
+
+  // --- Check and unlock achievements dynamic updates ---
+  const checkAchievements = (newList: AlchemistElement[]) => {
+    let unLockedSoundTrigger = false;
+    const size = newList.length;
+
+    const updated = achievementsList.map((ach) => {
+      if (ach.unlocked) return ach;
       
-      setTimeout(() => effect.remove(), 1000);
+      let conditionMet = false;
+      if (ach.id === "apprentice" && size >= 8) conditionMet = true;
+      if (ach.id === "scholar" && size >= 15) conditionMet = true;
+      if (ach.id === "grandmaster" && size >= 25) conditionMet = true;
+      
+      if (ach.id === "mythmaker" && newList.some(e => e.category.toLowerCase() === "mythic")) {
+        conditionMet = true;
+      }
+      if (ach.id === "cyber_age" && newList.some(e => e.category.toLowerCase() === "tech")) {
+        conditionMet = true;
+      }
+      if (ach.id === "cosmic_mind" && newList.some(e => e.category.toLowerCase() === "cosmic")) {
+        conditionMet = true;
+      }
+
+      if (conditionMet) {
+        unLockedSoundTrigger = true;
+        return { ...ach, unlocked: true };
+      }
+      return ach;
+    });
+
+    if (unLockedSoundTrigger) {
+      setAchievementsList(updated);
+      setTimeout(() => playSound("unlock"), 300);
     }
+  };
+
+  // --- Combine Main Action API call ---
+  const triggerTransmutation = async () => {
+    if (!slotA || !slotB) return;
     
-    function createMiniCookies(x, y) {
-      for (let i = 0; i < 8; i++) {
-        const cookie = document.createElement('div');
-        cookie.className = 'mini-cookie';
-        cookie.textContent = '🍪';
-        cookie.style.left = x + 'px';
-        cookie.style.top = y + 'px';
+    setIsFusing(true);
+    setFusionStageText("Merging components inside the Altar...");
+    
+    // Aesthetic simulated timeline stages
+    const textStages = [
+      "Gathering primal matter...",
+      "Infusing with Aether currents...",
+      "Consulting deep rules of nature...",
+      "Coalescing matrix grid..."
+    ];
+    let stageIdx = 0;
+    const interval = setInterval(() => {
+      if (stageIdx < textStages.length) {
+        setFusionStageText(textStages[stageIdx]);
+        stageIdx++;
+      }
+    }, 450);
+
+    try {
+      const response = await fetch("/api/transmute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ elementA: slotA, elementB: slotB })
+      });
+
+      clearInterval(interval);
+      
+      if (!response.ok) {
+        throw new Error("Transmutation node failed");
+      }
+
+      const data = await response.json();
+      const finalElement = data.element;
+
+      // Check if this is already compiled in our discovered list
+      const alreadyDiscovered = discoveredList.some(
+        (e) => e.name.toLowerCase() === finalElement.name.toLowerCase()
+      );
+
+      let updatedDiscovered = [...discoveredList];
+      if (!alreadyDiscovered) {
+        const itemWithTimestamp = {
+          ...finalElement,
+          discoveredAt: Date.now()
+        };
+        updatedDiscovered = [itemWithTimestamp, ...discoveredList];
+        setDiscoveredList(updatedDiscovered);
+        setIsNewDiscovery(true);
+        playSound("success");
+      } else {
+        setIsNewDiscovery(false);
+        playSound("click");
+      }
+
+      // Append compilation history log
+      const logItem: BlendHistoryItem = {
+        id: Math.random().toString(36).substring(4),
+        elementA: slotA,
+        elementB: slotB,
+        result: finalElement,
+        timestamp: Date.now()
+      };
+      const updatedHistory = [logItem, ...historyList];
+      setHistoryList(updatedHistory);
+
+      saveGameState(updatedDiscovered, updatedHistory);
+      setModalResult(finalElement);
+      checkAchievements(updatedDiscovered);
+
+      // Clean workspace active slots for clean gameplay
+      setSlotA(null);
+      setSlotB(null);
+
+    } catch (err) {
+      clearInterval(interval);
+      console.error(err);
+      playSound("error");
+      alert("A cosmic disruption halted fusion. Check key configuration or retry.");
+    } finally {
+      setIsFusing(false);
+    }
+  };
+
+  // --- Reload combination slots from history log quick selection ---
+  const reloadRecipe = (item: BlendHistoryItem) => {
+    // Check if both elements are currently available in discovered library
+    const hasA = discoveredList.some(e => e.name.toLowerCase() === item.elementA.name.toLowerCase());
+    const hasB = discoveredList.some(e => e.name.toLowerCase() === item.elementB.name.toLowerCase());
+
+    if (hasA && hasB) {
+      playSound("click");
+      // Find elements references in library to preserve current exact details/color
+      const actualA = discoveredList.find(e => e.name.toLowerCase() === item.elementA.name.toLowerCase())!;
+      const actualB = discoveredList.find(e => e.name.toLowerCase() === item.elementB.name.toLowerCase())!;
+      setSlotA(actualA);
+      setSlotB(actualB);
+    } else {
+      playSound("error");
+    }
+  };
+
+  // --- Consult Oracle Sphinx riddle hint ---
+  const queryOracleHint = async () => {
+    if (isQueryingHint) return;
+    setIsQueryingHint(true);
+    playSound("click");
+    setOracleHint("The Sphinx is looking into stars of element bonds...");
+
+    try {
+      const response = await fetch("/api/hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discovered: discoveredList })
+      });
+      const data = await response.json();
+      setOracleHint(data.hint || "Blend what is basic to reveal the grand.");
+    } catch (e) {
+      setOracleHint("Combine elements carefully to discover hidden bonds of the universe.");
+    } finally {
+      setIsQueryingHint(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+      
+      {/* Top Navigation Bar Bar */}
+      <header id="nav-header" className="px-5 py-3 border-b border-slate-900 bg-slate-950/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-900/30">
+            <Sparkles className="w-5 h-5 text-slate-950 animate-pulse" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight font-display bg-gradient-to-r from-amber-200 via-teal-200 to-violet-300 bg-clip-text text-transparent">
+              Infinite Alchemist
+            </h1>
+            <p className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">Ancient Guild Workspace</p>
+          </div>
+        </div>
+
+        {/* Diagnostic Badges & Controls */}
+        <div className="flex items-center space-x-4">
+          <Tooltip text={aiEnabled ? "Gemini is online & generating infinite creative fusions" : "No valid API key. Operating in preset recipe fallback mode."}>
+            <div className={`px-2.5 py-1 rounded-full text-xs font-mono font-medium flex items-center space-x-1.5 border transition-all ${
+              aiEnabled 
+                ? "bg-emerald-950/30 border-emerald-500/20 text-emerald-400" 
+                : "bg-amber-950/20 border-amber-500/10 text-amber-500/90"
+            }`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${aiEnabled ? "bg-emerald-400 animate-pulse" : "bg-amber-500"}`} />
+              <span>{aiEnabled ? "Gemini Online" : "Preset Mode"}</span>
+            </div>
+          </Tooltip>
+
+          <button 
+            id="btn-sound-toggle"
+            onClick={() => { setSoundOn(!soundOn); playSound("click"); }}
+            className="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-600" />}
+          </button>
+
+          <button 
+            id="btn-code-scroll-toggle"
+            onClick={() => { setIsCodeScrollOpen(true); fetchCodeFiles(); }}
+            title="Browse & Copy Project Source Code"
+            className="px-3 py-2 rounded-lg bg-indigo-950/40 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 hover:text-indigo-200 hover:bg-indigo-950/60 transition-all text-xs font-semibold flex items-center space-x-2"
+          >
+            <Code className="w-4 h-4" />
+            <span>Copy Game Code</span>
+          </button>
+
+          <button 
+            id="btn-progress-reset"
+            onClick={resetGame}
+            title="Reset Game"
+            className="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-rose-950/70 hover:text-rose-400 text-slate-400 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Interactive Grid Layout */}
+      <main className="flex-1 max-w-[1700px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
         
-        const angle = (i / 8) * Math.PI * 2;
-        const distance = 80 + Math.random() * 60;
-        cookie.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
-        cookie.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
-        
-        document.body.appendChild(cookie);
-        setTimeout(() => cookie.remove(), 1000);
+        {/* LEFT COLUMN: Library & Elements Inventory Table (SPAN 4) */}
+        <section id="col-inventory" className="lg:col-span-4 border-r border-slate-900 flex flex-col h-[calc(100vh-65px)] bg-slate-950/50">
+          
+          {/* Header & Stats bar */}
+          <div className="p-4 border-b border-slate-900 space-y-3.5 bg-slate-950/25">
+            <div className="flex justify-between items-center bg-slate-900/50 p-2.5 rounded-xl border border-slate-850">
+              <span className="text-xs text-slate-400 uppercase font-mono tracking-wider">Library Index</span>
+              <span className="text-sm font-semibold font-mono text-emerald-400">
+                {discoveredList.length} unlocked
+              </span>
+            </div>
+
+            {/* Magnifying glass search field */}
+            <div className="relative">
+              <span className="absolute inset-y-0 left-3 flex items-center text-slate-500">
+                <Search className="w-4 h-4" />
+              </span>
+              <input 
+                id="search-elements"
+                type="text"
+                placeholder="Search compounds or formulas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800/80 rounded-xl py-2 pl-9 pr-4 text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 text-slate-200 transition-color font-sans"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3.5 top-2.5 text-xs text-slate-500 hover:text-slate-300"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Category Filter Pills bar */}
+          <div className="px-3.5 py-2.5 border-b border-slate-900 overflow-x-auto flex space-x-1.5 scrollbar-thin max-w-full">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => { setSelectedCategory(cat); playSound("click"); }}
+                className={`py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  selectedCategory === cat 
+                    ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40" 
+                    : "bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Grid of Inventory Items */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {filteredDiscovered.length === 0 ? (
+              <div className="h-48 flex flex-col items-center justify-center text-center text-slate-500 space-y-2">
+                <Filter className="w-8 h-8 opacity-30 stroke-[1.5]" />
+                <p className="text-sm font-medium">No synthesized elements found</p>
+                <p className="text-xs max-w-xs text-slate-600">Try changing your filter tabs or searching different keywords.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
+                {filteredDiscovered.map((element) => {
+                  const style = COLOR_MAP[element.color] || COLOR_MAP.slate;
+                  const isSlotA = slotA?.name === element.name;
+                  const isSlotB = slotB?.name === element.name;
+                  const isSelected = isSlotA || isSlotB;
+
+                  return (
+                    <motion.button
+                      key={element.name}
+                      whileHover={{ scale: 1.02, y: -1 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => selectElement(element)}
+                      className={`group p-3 rounded-xl border text-left flex items-start space-x-3 transition-all cursor-pointer select-none ${style.bg} ${style.border} ${
+                        isSelected 
+                          ? "ring-2 ring-indigo-500/85 border-transparent outline-none scale-102" 
+                          : "hover:border-slate-700"
+                      }`}
+                    >
+                      <span className="text-2xl drop-shadow-sm group-hover:scale-110 transition-transform">{element.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold truncate text-slate-200 group-hover:text-white transition-colors">
+                            {element.name}
+                          </h4>
+                        </div>
+                        <p className="text-[10px] font-medium font-mono uppercase tracking-wider text-slate-500 mt-0.5 truncate">
+                          {element.category}
+                        </p>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* CENTER COLUMN: The Transmutation Altar Core (SPAN 5) */}
+        <section id="col-workbench" className="lg:col-span-5 flex flex-col h-[calc(100vh-65px)] bg-slate-950 overflow-y-auto border-r border-slate-900">
+          
+          <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+            
+            {/* Ambient Background Grid and Alchemy Circle */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
+              <div className="absolute w-[36rem] h-[36rem] rounded-full border border-slate-900/40 opacity-30 animate-spin-slow pb-4" />
+              <div className="absolute w-[24rem] h-[24rem] rounded-full border-2 border-indigo-500/5 opacity-10 animate-pulse-slow" />
+              <div className="absolute w-[12rem] h-[12rem] rounded-full border border-violet-500/5 opacity-10" />
+            </div>
+
+            {/* Interactive Fusion Desks */}
+            <div className="w-full max-w-md flex flex-col items-center space-y-12 z-10">
+              
+              <div className="text-center space-y-1 bg-slate-900/30 p-2 px-4 rounded-xl border border-slate-900/70 inline-block">
+                <span className="text-xs uppercase tracking-widest font-mono text-amber-500/90 font-medium">Transmutation Altar</span>
+                <p className="text-xs text-slate-400">Combine two elements to fuse state rules</p>
+              </div>
+
+              {/* The Active Slots Connector Grid */}
+              <div className="w-full grid grid-cols-2 gap-4 relative justify-center items-center">
+                
+                {/* Horizontal Flowing Link Line */}
+                <div className="absolute top-1/2 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-indigo-500/20 via-indigo-400/40 to-indigo-500/20 -translate-y-1/2 pointer-events-none z-0" />
+                
+                {/* SLOT A Circle */}
+                <div className="flex flex-col items-center space-y-3 z-10">
+                  <span className="text-xs font-mono uppercase text-slate-500 tracking-widest">Reagent A</span>
+                  <div className="relative">
+                    <AnimatePresence mode="popLayout">
+                      {slotA ? (
+                        <motion.div
+                          key="active-A"
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.8, opacity: 0 }}
+                          className={`w-28 h-28 rounded-full border-2 flex flex-col items-center justify-center cursor-pointer shadow-lg shadow-black/80 transition-all ${
+                            (COLOR_MAP[slotA.color] || COLOR_MAP.slate).border
+                          } ${(COLOR_MAP[slotA.color] || COLOR_MAP.slate).bg} group`}
+                          onClick={() => clearSlot("A")}
+                          title="Click to remove element"
+                        >
+                          <span className="text-4xl animate-float">{slotA.emoji}</span>
+                          <span className="text-xs font-semibold text-slate-200 mt-2 max-w-[90px] truncate text-center px-1">
+                            {slotA.name}
+                          </span>
+                          <span className="absolute -top-1.5 -right-1 h-5 w-5 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center text-[10px] text-slate-400 group-hover:text-white group-hover:bg-red-900 transition-all">
+                            ✕
+                          </span>
+                        </motion.div>
+                      ) : (
+                        <div 
+                          key="empty-A"
+                          className="w-28 h-28 rounded-full border-2 border-dashed border-slate-800 bg-slate-950/40 flex flex-col items-center justify-center text-slate-600 shadow-inner group transition-all hover:border-indigo-500/20"
+                        >
+                          <Plus className="w-6 h-6 stroke-[1.5] group-hover:scale-110 transition-transform text-slate-750" />
+                          <span className="text-[10px] uppercase font-mono tracking-wider mt-1.5 select-none text-slate-700">Empty</span>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* SLOT B Circle */}
+                <div className="flex flex-col items-center space-y-3 z-10">
+                  <span className="text-xs font-mono uppercase text-slate-500 tracking-widest">Reagent B</span>
+                  <div className="relative">
+                    <AnimatePresence mode="popLayout">
+                      {slotB ? (
+                        <motion.div
+                          key="active-B"
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.8, opacity: 0 }}
+                          className={`w-28 h-28 rounded-full border-2 flex flex-col items-center justify-center cursor-pointer shadow-lg shadow-black/80 transition-all ${
+                            (COLOR_MAP[slotB.color] || COLOR_MAP.slate).border
+                          } ${(COLOR_MAP[slotB.color] || COLOR_MAP.slate).bg} group`}
+                          onClick={() => clearSlot("B")}
+                          title="Click to remove element"
+                        >
+                          <span className="text-4xl animate-float">{slotB.emoji}</span>
+                          <span className="text-xs font-semibold text-slate-200 mt-2 max-w-[90px] truncate text-center px-1">
+                            {slotB.name}
+                          </span>
+                          <span className="absolute -top-1.5 -right-1 h-5 w-5 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center text-[10px] text-slate-400 group-hover:text-white group-hover:bg-red-900 transition-all">
+                            ✕
+                          </span>
+                        </motion.div>
+                      ) : (
+                        <div 
+                          key="empty-B"
+                          className="w-28 h-28 rounded-full border-2 border-dashed border-slate-800 bg-slate-950/40 flex flex-col items-center justify-center text-slate-600 shadow-inner group transition-all hover:border-indigo-500/20"
+                        >
+                          <Plus className="w-6 h-6 stroke-[1.5] group-hover:scale-110 transition-transform text-slate-750" />
+                          <span className="text-[10px] uppercase font-mono tracking-wider mt-1.5 select-none text-slate-700">Empty</span>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* TRANSMUTE OPERATIVE PANEL */}
+              <div className="w-full flex flex-col items-center space-y-4">
+                
+                {/* Fusion progress banner */}
+                <AnimatePresence>
+                  {isFusing && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      className="w-full bg-slate-900/60 p-3.5 rounded-2xl border border-indigo-500/20 space-y-2 flex flex-col items-center text-center shadow-lg"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+                        <span className="text-xs font-mono text-indigo-300 font-medium tracking-wide">
+                          {fusionStageText}
+                        </span>
+                      </div>
+                      <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 animate-pulse" style={{ width: "100%" }} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Core Action triggers */}
+                <div className="flex w-full items-center space-x-3.5">
+                  <button
+                    id="btn-clean-workspace"
+                    onClick={cleanWorkspace}
+                    disabled={!slotA && !slotB || isFusing}
+                    className="py-3 px-4 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 font-medium hover:text-slate-200 hover:border-slate-750 transition-all text-sm disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    Clean Altar
+                  </button>
+
+                  <button
+                    id="btn-fuse-action"
+                    disabled={!slotA || !slotB || isFusing}
+                    onClick={triggerTransmutation}
+                    className={`flex-1 py-3 px-6 rounded-xl font-semibold text-sm transition-all flex items-center justify-center space-x-2.5 shadow-lg ${
+                      slotA && slotB && !isFusing
+                        ? "bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:shadow-indigo-500/20 text-white cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+                        : "bg-slate-900 text-slate-600 border border-slate-850 cursor-not-allowed"
+                    }`}
+                  >
+                    <Zap className={`w-4 h-4 ${slotA && slotB && !isFusing ? "fill-amber-300 stroke-amber-200" : ""}`} />
+                    <span>{isFusing ? "Fusing Elemental Paths..." : "Fuse Elements"}</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* SPHINX RIDDLE ORACLE (BOTTOM RAIL) */}
+          <div id="oracle-consultant" className="p-4 bg-slate-950/80 border-t border-slate-900">
+            <div className="max-w-md mx-auto p-3.5 rounded-2xl bg-slate-900/40 border border-indigo-950/65 space-y-3.5 flex flex-col sm:flex-row sm:items-start sm:space-y-0 sm:space-x-4">
+              <div className="flex-shrink-0 flex items-center space-x-3 sm:flex-col sm:space-x-0 sm:space-y-2">
+                <div className="w-10 h-10 rounded-full bg-indigo-950 border border-indigo-800/40 flex items-center justify-center text-lg shadow-md">
+                  🧙‍♂️
+                </div>
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-xs font-semibold font-mono uppercase tracking-wider text-indigo-400">Sphere Oracle Hint</h5>
+                  <button 
+                    id="btn-query-oracle"
+                    onClick={queryOracleHint} 
+                    disabled={isQueryingHint}
+                    className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 underline font-medium disabled:opacity-40"
+                  >
+                    {isQueryingHint ? "Consulting..." : "Ask Sphinx Oracle"}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed font-sans italic">
+                  {oracleHint || "Welcome, Alchemist. I weave the fates of combined elements. Query me and I shall whisper an recipe riddle in the wind."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT COLUMN: Alchemy Chronicles- achievements and history (SPAN 3) */}
+        <section id="col-logs" className="lg:col-span-3 border-l border-slate-900 flex flex-col h-[calc(100vh-65px)] bg-slate-950/70">
+          
+          {/* Header tabs */}
+          <div className="p-4 border-b border-slate-900 flex items-center space-x-2 bg-slate-950/25">
+            <Clock className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-sm font-semibold tracking-wide uppercase font-mono text-slate-300">Chronicle Records</h3>
+          </div>
+
+          {/* Split Log view lists: History of blending (top) and Achievements (bottom) */}
+          <div className="flex-1 overflow-y-auto flex flex-col divide-y divide-slate-900/60">
+            
+            {/* History logs block */}
+            <div className="p-4 space-y-3 flex-1 flex flex-col min-h-[50%]">
+              <div className="flex justify-between items-center text-xs font-mono text-slate-500 uppercase tracking-widest leading-none">
+                <span>Transmutation Log</span>
+                <span>{historyList.length} logs</span>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto space-y-2 max-h-[350px]">
+                {historyList.length === 0 ? (
+                  <p className="text-xs italic text-slate-600 text-center py-10">No combined recipes logged yet.</p>
+                ) : (
+                  historyList.map((item) => (
+                    <div 
+                      key={item.id}
+                      onClick={() => reloadRecipe(item)}
+                      title="Click to reload materials into Altar slots"
+                      className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-850/80 hover:border-indigo-900/30 text-xs flex items-center justify-between cursor-pointer group hover:bg-slate-900 transition-all font-sans"
+                    >
+                      <div className="flex items-center space-x-1.5 min-w-0">
+                        <span className="truncate max-w-[50px] text-slate-400">{item.elementA.emoji} {item.elementA.name}</span>
+                        <span className="text-indigo-500 font-mono">+</span>
+                        <span className="truncate max-w-[50px] text-slate-400">{item.elementB.emoji} {item.elementB.name}</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-indigo-400 transition-colors mx-1 flex-shrink-0" />
+                      <div className="flex items-center space-x-1 bg-slate-950/40 px-2 py-1 rounded-lg border border-slate-850">
+                        <span>{item.result.emoji}</span>
+                        <span className="font-semibold text-slate-300 group-hover:text-white transition-colors truncate max-w-[60px]">{item.result.name}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Achievements block */}
+            <div className="p-4 space-y-3.5 flex flex-col">
+              <div className="flex justify-between items-center text-xs font-mono text-slate-500 uppercase tracking-widest leading-none">
+                <span>Guild Achievements</span>
+                <span>{achievementsList.filter(a => a.unlocked).length} / {achievementsList.length}</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {achievementsList.map((ach) => (
+                  <div 
+                    key={ach.id}
+                    className={`p-3 rounded-xl border flex items-center space-x-3.5 transition-all text-xs font-sans ${
+                      ach.unlocked 
+                        ? "bg-slate-900/60 border-indigo-500/20 text-slate-200" 
+                        : "bg-slate-950/30 border-slate-900 text-slate-500"
+                    }`}
+                  >
+                    <div className="text-2xl flex-shrink-0 select-none">{ach.icon}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h4 className={`font-semibold truncate ${ach.unlocked ? "text-slate-200" : "text-slate-600"}`}>
+                          {ach.title}
+                        </h4>
+                        {ach.unlocked && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
+                      </div>
+                      <p className={`text-[11px] mt-0.5 leading-relaxed leading-snug ${ach.unlocked ? "text-slate-400" : "text-slate-600"}`}>
+                        {ach.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </main>
+
+      {/* GLORIOUS TRANSMUTATION REVEAL RESULT SCREEN (MODAL POPUP) */}
+      <AnimatePresence>
+        {modalResult && (
+          <div id="transmute-result-modal" className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 180 }}
+              className={`max-w-md w-full rounded-3xl border p-6 text-center space-y-6 shadow-2xl overflow-hidden relative ${
+                (COLOR_MAP[modalResult.color] || COLOR_MAP.slate).bg
+              } ${(COLOR_MAP[modalResult.color] || COLOR_MAP.slate).border}`}
+            >
+              
+              {/* Star dust halo animation inside modal */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
+                <div className={`absolute w-72 h-72 rounded-full opacity-10 animate-pulse-slow blur-xl bg-${modalResult.color || "indigo"}-500/30`} />
+              </div>
+
+              {/* Discovery Banner badge */}
+              {isNewDiscovery ? (
+                <div className="inline-flex py-1 px-3 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-semibold uppercase tracking-widest text-emerald-400 animate-pulse font-mono mx-auto">
+                  🎉 New Formula Discovered
+                </div>
+              ) : (
+                <div className="inline-flex py-1 px-3 rounded-full bg-slate-900 border border-slate-850 text-[11px] font-semibold uppercase tracking-widest text-slate-400 font-mono mx-auto">
+                  Element Fused Again
+                </div>
+              )}
+
+              {/* Gigantic shiny emoji */}
+              <div className="relative inline-block py-2">
+                <motion.div 
+                  initial={{ rotate: -15, scale: 0.5 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ delay: 0.1, type: "spring" }}
+                  className="text-7xl drop-shadow-[0_4px_12px_rgba(255,255,255,0.15)] animate-float selection:bg-transparent"
+                >
+                  {modalResult.emoji}
+                </motion.div>
+                <div className="absolute -inset-1 rounded-full animate-ping opacity-10 bg-indigo-500/10 -z-10" />
+              </div>
+
+              {/* Main typography descriptions */}
+              <div className="space-y-2 px-1 relative z-10">
+                <h2 className="text-2xl font-bold font-display tracking-tight text-white uppercase sm:text-3xl">
+                  {modalResult.name}
+                </h2>
+                <div className="inline-block px-2 py-0.5 rounded-md bg-slate-950/50 border border-slate-900 text-[10px] font-mono tracking-wider text-slate-400 uppercase">
+                  {modalResult.category}
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed max-w-sm mx-auto pt-2 italic">
+                  &ldquo;{modalResult.description}&rdquo;
+                </p>
+              </div>
+
+              {/* Modal controls */}
+              <div className="pt-3.5 space-y-2 relative z-10">
+                <button
+                  id="btn-close-result-modal"
+                  onClick={() => { playSound("click"); setModalResult(null); }}
+                  className="w-full py-3 px-6 rounded-xl bg-slate-100 text-slate-950 font-bold text-sm tracking-wide hover:bg-white transition-all cursor-pointer hover:shadow-lg active:scale-98"
+                >
+                  Retrieve to Library
+                </button>
+                {modalResult.isFallback && (
+                  <p className="text-[10px] text-amber-500/90 leading-tight flex items-center justify-center space-x-1 font-sans">
+                    <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Configure your Gemini Secret key to enable infinite creations!</span>
+                  </p>
+                )}
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CODE SELECTION GRIMOIRE DRAWER MODAL */}
+      <AnimatePresence>
+        {isCodeScrollOpen && (
+          <div id="code-scroll-modal" className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="max-w-5xl w-full h-[85vh] rounded-3xl border border-slate-850 bg-slate-950 flex flex-col shadow-2xl overflow-hidden relative"
+            >
+              
+              {/* Star background accents */}
+              <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl animate-pulse-slow" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-violet-500/10 blur-3xl" />
+              </div>
+
+              {/* Modal header block */}
+              <div className="p-5 border-b border-slate-950/65 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 z-10 bg-slate-950">
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-950 border border-indigo-800/40 flex items-center justify-center text-lg shadow-md text-indigo-400">
+                    <Code className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h5 className="text-base font-semibold font-display text-white">Ancient Code Grimoire</h5>
+                    <p className="text-[11px] text-slate-500 font-mono">Live code exporter of Infinite Alchemist workspace</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2.5">
+                  <button
+                    id="btn-copy-all"
+                    onClick={copyAllCodeCombined}
+                    disabled={isLoadingCode || codeFiles.length === 0}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600/10 border border-emerald-500/25 hover:border-emerald-500/40 hover:bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 transition-all text-xs font-semibold flex items-center space-x-2 disabled:opacity-40"
+                  >
+                    {copiedFileIdx === -1 ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>All Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy All Combined</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    id="btn-close-code-scroll"
+                    onClick={() => { playSound("click"); setIsCodeScrollOpen(false); }}
+                    className="p-1 px-3 rounded-lg hover:bg-slate-905 border border-transparent hover:border-slate-800 text-xs text-slate-400 hover:text-white transition-all font-mono"
+                  >
+                    Close Scroll
+                  </button>
+                </div>
+              </div>
+
+              {/* Code viewer split workspace */}
+              {isLoadingCode ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 space-y-3 z-10 animate-pulse">
+                  <div className="w-6 h-6 rounded-full border-2 border-t-transparent border-indigo-500 animate-spin" />
+                  <p className="text-xs font-mono">Unrolling the codebase scriptures...</p>
+                </div>
+              ) : codeFiles.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 space-y-2 z-10">
+                  <AlertCircle className="w-8 h-8 stroke-[1.5] opacity-45" />
+                  <p className="text-sm">The spell scriptures was interrupted</p>
+                  <button onClick={fetchCodeFiles} className="text-xs text-indigo-400 underline mt-1 font-mono">Reopen & Retry</button>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden z-10">
+                  
+                  {/* File Selector Tab bar */}
+                  <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-slate-900 p-3 bg-slate-950/40 space-y-1 overflow-y-auto max-h-[150px] md:max-h-none flex md:flex-col md:space-y-1 md:space-x-0 space-x-2">
+                    {codeFiles.map((file, idx) => (
+                      <button
+                        key={file.path}
+                        onClick={() => { playSound("click"); setActiveCodeIndex(idx); }}
+                        className={`w-full text-left p-2.5 rounded-xl text-xs font-mono transition-all flex items-center justify-between whitespace-nowrap md:whitespace-normal ${
+                          activeCodeIndex === idx
+                            ? "bg-indigo-600/10 text-indigo-300 border border-indigo-500/35"
+                            : "bg-transparent text-slate-400 hover:bg-slate-905 border border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 truncate">
+                          <span className="text-xs opacity-65">📂</span>
+                          <span className="truncate font-medium">{file.name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Dynamic Code display panel with quick copy */}
+                  <div className="flex-1 flex flex-col overflow-hidden bg-slate-950/70 relative">
+                    
+                    {/* Floating target copy button */}
+                    <div className="absolute top-4 right-4 z-20 flex items-center space-x-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-805">
+                      <span className="text-[10px] font-mono text-slate-500 px-2 select-none">
+                        {codeFiles[activeCodeIndex]?.path}
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(codeFiles[activeCodeIndex].content, activeCodeIndex)}
+                        className="p-1 px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-all text-[11px] font-semibold flex items-center space-x-1.5"
+                      >
+                        {copiedFileIdx === activeCodeIndex ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-300 stroke-[2.5]" />
+                            <span className="text-emerald-200">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy File Code</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Pre-formatted Monospace Code Screen container */}
+                    <div className="flex-1 overflow-auto p-5 font-mono text-xs text-slate-300 leading-relaxed max-w-full">
+                      <pre className="p-4 rounded-2xl bg-slate-900 border border-slate-850 overflow-x-auto select-text scrollbar-thin h-full max-w-full scroll-smooth">
+                        <code>{codeFiles[activeCodeIndex]?.content}</code>
+                      </pre>
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
+
+              {/* Bottom bar help info */}
+              <div className="p-4 text-center border-t border-slate-900 text-[11px] font-medium text-slate-500 font-mono uppercase tracking-wider bg-slate-950">
+                ⭐ Simply paste the copied scripts into your local IDE matching the directory paths.
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+    </div>
+  );
+}
+
+// Simple Tooltip utility component
+function Tooltip({ children, text }: { children: React.ReactNode; text: string }) {
+  const [show, setShow] = useState(false);
+
+  return (
+    <div 
+      className="relative flex items-center"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 5 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 5 }}
+            className="absolute top-full right-0 mt-2 p-2.5 bg-slate-950 border border-slate-900 rounded-lg text-[11px] text-slate-400 max-w-[200px] w-48 text-left leading-normal z-50 shadow-2xl pointer-events-none"
+          >
+            {text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
+// ==========================================
+// FILE: server.ts
+// ==========================================
+
+import express from "express";
+import path from "path";
+import fs from "fs";
+import { createServer as createViteServer } from "vite";
+import { GoogleGenAI, Type } from "@google/genai";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const app = express();
+app.use(express.json());
+
+const PORT = 3000;
+
+// Initialize GoogleGenAI client (safe for optional key)
+const apiKey = process.env.GEMINI_API_KEY;
+let aiClient: GoogleGenAI | null = null;
+
+if (apiKey && apiKey !== "MY_GEMINI_API_KEY") {
+  try {
+    aiClient = new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
       }
+    });
+    console.log("Gemini API Client initialized successfully.");
+  } catch (err) {
+    console.error("Failed to initialize Gemini API Client:", err);
+  }
+} else {
+  console.log("No valid GEMINI_API_KEY found. Running in offline fallback mode.");
+}
+
+// Pre-defined core transmutation recipes for robust and fast gameplay
+const CORE_RECIPES: Record<string, { name: string; emoji: string; description: string; category: string; color: string }> = {
+  "Air+Fire": { name: "Energy", emoji: "⚡", description: "Charged atmosphere humming with active raw power.", category: "Primal", color: "amber" },
+  "Earth+Fire": { name: "Lava", emoji: "🌋", description: "Molten rock bubbling with intense subterranean heat.", category: "Primal", color: "amber" },
+  "Earth+Water": { name: "Mud", emoji: "💩", description: "Soggy soft soil blending water and earth.", category: "Primal", color: "amber" },
+  "Air+Water": { name: "Rain", emoji: "🌧️", description: "Water condensing and falling from the atmosphere.", category: "Atmosphere", color: "sky" },
+  "Earth+Rain": { name: "Plant", emoji: "🌱", description: "A tender sprout rising from enriched, watered earth.", category: "Flora & Fauna", color: "emerald" },
+  "Fire+Lava": { name: "Stone", emoji: "🪨", description: "Hardened basalt formed from cooled igneous flow.", category: "Materials", color: "slate" },
+  "Fire+Plant": { name: "Charcoal", emoji: "🔥", description: "The carbonized remnants of combusted flora.", category: "Materials", color: "slate" },
+  "Plant+Water": { name: "Swamp", emoji: "🐊", description: "A murky, humid wetland teaming with decay.", category: "Atmosphere", color: "sky" },
+  "Energy+Swamp": { name: "Life", emoji: "🧬", description: "A miraculous spark animating physical matter.", category: "Mythic", color: "violet" },
+  "Stone+Stone": { name: "Metal", emoji: "⛓️", description: "Refined ore extracted through pressure and furnace.", category: "Materials", color: "slate" },
+  "Life+Mud": { name: "Clay", emoji: "🏺", description: "Fine-grained soil perfect for modeling bodies.", category: "Materials", color: "slate" },
+  "Clay+Life": { name: "Human", emoji: "🧑", description: "A conscious, creative dweller of the physical plane.", category: "Flora & Fauna", color: "emerald" },
+  "Human+Metal": { name: "Tool", emoji: "🔨", description: "An extension of human intellect forged in steel.", category: "Tech", color: "cyan" },
+  "Earth+Earth": { name: "Pressure", emoji: "💥", description: "Subterranean forces pushing atoms to their limit.", category: "Primal", color: "amber" },
+  "Pressure+Stone": { name: "Diamond", emoji: "💎", description: "Crystalline carbon of peerless purity and density.", category: "Materials", color: "slate" },
+  "Human+Human": { name: "Love", emoji: "❤️", description: "An invisible bond that transcends simple chemistry.", category: "Mythic", color: "rose" },
+  "Air+Energy": { name: "Lightning", emoji: "🌩️", description: "Violent atmospheric discharge of high voltage.", category: "Atmosphere", color: "sky" },
+  "Life+Lightning": { name: "Ghost", emoji: "👻", description: "The spectral residue of a life released too quickly.", category: "Mythic", color: "violet" },
+  "Air+Stone": { name: "Sand", emoji: "⏳", description: "Countless grains of pulverized minerals worn down by wind.", category: "Materials", color: "slate" },
+  "Fire+Sand": { name: "Glass", emoji: "🧪", description: "Frit consolidated into a transparent, fragile solid.", category: "Materials", color: "slate" },
+  "Glass+Lightning": { name: "Lightbulb", emoji: "💡", description: "An enclosed filament conquering darkness via currents.", category: "Tech", color: "cyan" },
+  "Human+Tool": { name: "Engineer", emoji: "🛠️", description: "A designer of complex machinery and architecture.", category: "Tech", color: "cyan" },
+  "Engineer+Lightbulb": { name: "Robot", emoji: "🤖", description: "An intelligent, mechanical helper running soft scripts.", category: "Tech", color: "cyan" },
+  "Earth+Space": { name: "Planet", emoji: "🪐", description: "A rotational celestial body orbiting a star.", category: "Cosmic", color: "indigo" },
+  "Fire+Space": { name: "Star", emoji: "⭐️", description: "A luminous sphere of plasma held by gravity.", category: "Cosmic", color: "indigo" },
+  "Star+Star": { name: "Galaxy", emoji: "🌌", description: "A swirling spiral system of dust, gas, and stars.", category: "Cosmic", color: "indigo" },
+  "Star+Time": { name: "Supernova", emoji: "💥", description: "The cataclysmic death blast of a massive dying star.", category: "Cosmic", color: "indigo" },
+  "Human+Space": { name: "Astronaut", emoji: "👨‍🚀", description: "A brave voyager swimming in the void.", category: "Cosmic", color: "indigo" },
+  "Human+Time": { name: "History", emoji: "📜", description: "The compiled tales of past actions and civilizations.", category: "Mythic", color: "violet" },
+  "Life+Space": { name: "Alien", emoji: "👽", description: "An exotic lifeform born outside our atmosphere.", category: "Cosmic", color: "indigo" },
+};
+
+// Falls back to an offline procedural generator if Gemini is unavailable
+const proceduralFallbackTransmute = (elemA: string, elemB: string) => {
+  const categories = ["Primal", "Atmosphere", "Materials", "Flora & Fauna", "Cosmic", "Tech", "Mythic"];
+  const colors = ["amber", "sky", "slate", "emerald", "indigo", "cyan", "violet"];
+  const emojis = ["✨", "🛡️", "🔮", "🧬", "☄️", "🍄", "🔑", "🎡", "⚜️", "⚓"];
+  
+  const key = [elemA, elemB].sort().join("+");
+  
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = key.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  hash = Math.abs(hash);
+  
+  const category = categories[hash % categories.length];
+  const color = colors[hash % colors.length];
+  const emoji = emojis[hash % emojis.length];
+  
+  // Blend names cleanly
+  const halfA = elemA.substring(0, Math.ceil(elemA.length / 2));
+  const halfB = elemB.substring(elemB.length / 2);
+  const name = halfA + halfB.toLowerCase();
+  
+  return {
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    emoji,
+    description: `A curious modern synthesis of ${elemA} and ${elemB}.`,
+    category,
+    color,
+    isFallback: true
+  };
+};
+
+// API: Transmute combination
+app.post("/api/transmute", async (req, res) => {
+  try {
+    const { elementA, elementB } = req.body;
+    if (!elementA || !elementB) {
+      return res.status(400).json({ error: "Two valid elements are required for fusion." });
     }
-    
-    function handleClick(e) {
-      cookies += cookiesPerClick;
-      totalClicks++;
-      
-      cookieCount.textContent = formatBigNumber(cookies);
-      totalClicksEl.textContent = totalClicks.toLocaleString();
-      
-      const rect = cookieBtn.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top;
-      
-      createClickEffect(x, y);
-      createMiniCookies(e.clientX, e.clientY);
+
+    const elemAName = elementA.name.trim();
+    const elemBName = elementB.name.trim();
+
+    // Elements cannot be combined with themselves unless custom instructions permit
+    const sortedKey = [elemAName, elemBName].sort().join("+");
+
+    // 1. Check core deterministic recipes first
+    if (CORE_RECIPES[sortedKey]) {
+      return res.json({ element: CORE_RECIPES[sortedKey], fromCache: true });
     }
-    
-    function resetGame() {
-      cookies = BigInt(0);
-      totalClicks = 0;
-      cookieCount.textContent = '0';
-      totalClicksEl.textContent = '0';
+
+    // 2. Try utilizing Gemini API Client if available
+    if (aiClient) {
+      const prompt = `Combine element "${elemAName}" (${elementA.emoji}, desc: "${elementA.description || ''}") with element "${elemBName}" (${elementB.emoji}, desc: "${elementB.description || ''}"). 
+What is the resulting element?
+Think logically:
+- Earth + Pressure -> Diamond
+- Life + Lightning -> Ghost
+- Mind + Technology -> AI
+- Plant + Sand -> Cactus
+- Metal + Star -> Meteorite
+
+Generate something elegant, fun, and thematic! Respond with a single valid JSON object following this EXACT schema:
+{
+  "name": "CapCase name (e.g. 'Lunar Echo' or 'Cyber Spore')",
+  "emoji": "One emoji reflecting this fusion",
+  "description": "Poetic/witty 1-sentence alchemical snippet (max 15 words).",
+  "category": "One of: 'Primal' | 'Atmosphere' | 'Materials' | 'Flora & Fauna' | 'Cosmic' | 'Tech' | 'Mythic'",
+  "color": "One of: 'amber' | 'sky' | 'slate' | 'emerald' | 'indigo' | 'cyan' | 'violet' | 'rose'"
+}`;
+
+      try {
+        const response = await aiClient.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                emoji: { type: Type.STRING },
+                description: { type: Type.STRING },
+                category: { type: Type.STRING },
+                color: { type: Type.STRING }
+              },
+              required: ["name", "emoji", "description", "category", "color"]
+            },
+            temperature: 0.7
+          }
+        });
+
+        const textOutput = response.text?.trim() || "";
+        const parsed = JSON.parse(textOutput);
+        return res.json({ element: parsed, fromCache: false, isAi: true });
+      } catch (geminiErr) {
+        console.error("Gemini combination failed, invoking procedural fallback:", geminiErr);
+        // Fallback gracefully
+        const fallback = proceduralFallbackTransmute(elemAName, elemBName);
+        return res.json({ element: fallback, fromCache: false, isFallback: true });
+      }
+    } else {
+      // Offline procedural fallback
+      const fallback = proceduralFallbackTransmute(elemAName, elemBName);
+      return res.json({ element: fallback, fromCache: false, isFallback: true });
     }
-    
-    cookieBtn.addEventListener('click', handleClick);
-    resetBtn.addEventListener('click', resetGame);
-  </script>
-</body>
-</html>
+  } catch (error) {
+    console.error("Transmutation endpoint error:", error);
+    res.status(500).json({ error: "The transmutation field was disrupted. Please try again." });
+  }
+});
+
+// API: Hint Oracle
+app.post("/api/hint", async (req, res) => {
+  try {
+    const { discovered } = req.body;
+    if (!discovered || !Array.isArray(discovered)) {
+      return res.status(400).json({ error: "Discovered elements list is required." });
+    }
+
+    const inventoryNames = discovered.map(e => e.name);
+
+    if (aiClient) {
+      const prompt = `A user playing an alchemy puzzle has already unlocked these elements: [${inventoryNames.join(", ")}].
+Provide a cryptic, mystical, positive hint or riddle about one possible element they could craft or find next (e.g. suggesting Star or Tool or Plant or Glass or Alien). Keep it poetically short (max 2 sentences)! Ensure you do NOT directly name the final ingredients explicitly - speak in riddles!`;
+
+      try {
+        const response = await aiClient.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: prompt,
+          config: {
+            temperature: 0.9,
+          }
+        });
+        return res.json({ hint: response.text?.trim() || "The Oracle remains quiet today." });
+      } catch (geminiErr) {
+        return res.json({ hint: "Weave the basic primals together. Warmth and wet soil can spawn green life..." });
+      }
+    } else {
+      return res.json({ hint: "Weave the basic primals together. Try fusing Earth with Rain, or Pressure with Stone, to reveal new forms..." });
+    }
+  } catch (error) {
+    res.json({ hint: "Combine elements carefully to discover hidden bonds of the universe." });
+  }
+});
+
+// API Route to fetch active codebase files for clipboard copying
+app.get("/api/code", (req, res) => {
+  try {
+    const filesToRead = [
+      { path: "src/App.tsx", name: "App.tsx (Frontend Core)" },
+      { path: "server.ts", name: "server.ts (Backend Server)" },
+      { path: "src/types.ts", name: "types.ts (Interfaces)" },
+      { path: "src/index.css", name: "index.css (Styling & Anim)" },
+      { path: "package.json", name: "package.json (Manifest)" },
+      { path: "tsconfig.json", name: "tsconfig.json (Compiler)" },
+      { path: "vite.config.ts", name: "vite.config.ts (Build)" }
+    ];
+
+    const files = filesToRead.map((f) => {
+      try {
+        const absolutePath = path.join(process.cwd(), f.path);
+        const content = fs.readFileSync(absolutePath, "utf-8");
+        return {
+          name: f.name,
+          path: f.path,
+          content
+        };
+      } catch (err) {
+        return {
+          name: f.name,
+          path: f.path,
+          content: `// Source file could not be read: ${f.path}`
+        };
+      }
+    });
+
+    res.json({ files });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to read the ancient scrolls on workspace storage." });
+  }
+});
+
+// Server-side status check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "alive", geminiEnabled: !!aiClient });
+});
+
+// Configure Vite or serve production bundle
+async function startServer() {
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+    console.log("Vite development server connected in middleware mode.");
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server is running at http://0.0.0.0:${PORT}`);
+  });
+}
+
+startServer();
+
+
+// ==========================================
+// FILE: src/types.ts
+// ==========================================
+
+export interface AlchemistElement {
+  name: string;
+  emoji: string;
+  description: string;
+  category: "Primal" | "Atmosphere" | "Materials" | "Flora & Fauna" | "Cosmic" | "Tech" | "Mythic" | string;
+  color: string; // Tailwind color accent
+  isAi?: boolean;
+  isFallback?: boolean;
+  discoveredAt?: number;
+}
+
+export interface BlendHistoryItem {
+  id: string;
+  elementA: AlchemistElement;
+  elementB: AlchemistElement;
+  result: AlchemistElement;
+  timestamp: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  condition: string;
+  icon: string;
+  unlocked: boolean;
+}
+
+
+// ==========================================
+// FILE: src/index.css
+// ==========================================
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(3deg);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+/* Custom scrollbar styling for a cleaner look */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+
+// ==========================================
+// FILE: package.json
+// ==========================================
+
+{
+  "name": "react-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "start": "node dist/server.cjs",
+    "preview": "vite preview",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@tailwindcss/vite": "^4.1.14",
+    "@vitejs/plugin-react": "^5.0.4",
+    "lucide-react": "^0.546.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "vite": "^6.2.3",
+    "express": "^4.21.2",
+    "dotenv": "^17.2.3",
+    "motion": "^12.23.24"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.25.0",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.3",
+    "@types/express": "^4.17.21"
+  }
+}
+
+
+// ==========================================
+// FILE: tsconfig.json
+// ==========================================
+
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}
+
+
+// ==========================================
+// FILE: vite.config.ts
+// ==========================================
+
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import {defineConfig} from 'vite';
+
+export default defineConfig(() => {
+  return {
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+      },
+    },
+    server: {
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      hmr: process.env.DISABLE_HMR !== 'true',
+      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
+      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+  };
+});
