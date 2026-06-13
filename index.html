@@ -1,4 +1,839 @@
 // ==========================================
+// FILE: standalone_game.html
+// ==========================================
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infinite Alchemist - Standalone Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(3deg); }
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-float {
+      animation: float 4s ease-in-out infinite;
+    }
+    .animate-spin-slow {
+      animation: spin-slow 22s linear infinite;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.4);
+    }
+  </style>
+</head>
+<body class="bg-[#030712] text-slate-100 min-h-screen flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+
+  <!-- TOP BAR -->
+  <header class="px-5 py-3.5 border-b border-slate-900 bg-gray-950/40 backdrop-blur-md flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-indigo-505 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-950/30">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-950"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight font-display bg-gradient-to-r from-amber-200 via-teal-200 to-violet-300 bg-clip-text text-transparent">
+          Infinite Alchemist
+        </h1>
+        <p class="text-[10px] text-slate-500 font-mono tracking-widest uppercase">Self-Contained Grimoire</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3.5">
+      <div class="px-2.5 py-1 rounded-full text-[11px] font-mono font-medium flex items-center space-x-1.5 border bg-emerald-950/30 border-emerald-500/20 text-emerald-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span>HTML Standalone</span>
+      </div>
+
+      <button id="btn-sound-toggle" onclick="toggleSound()" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors" title="Toggle Sound">
+        <svg id="icon-sound-on" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.75.75 0 0 1 1.25-.56l5.105 4.54a1.75 1.75 0 0 1 .536 1.3V14a1.75 1.75 0 0 1-.536 1.3l-5.105 4.54a.75.75 0 0 1-1.25-.56V4.702Z"/><path d="M6 9H4.5A1.5 1.5 0 0 0 3 10.5v3A1.5 1.5 0 0 0 4.5 15H6V9Z"/></svg>
+        <svg id="icon-sound-off" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.75.75 0 0 1 1.25-.56l5.105 4.54a1.75 1.75 0 0 1 .536 1.3V14a1.75 1.75 0 0 1-.536 1.3l-5.105 4.54a.75.75 0 0 1-1.25-.56V4.702Z"/><path d="M6 9H4.5A1.5 1.5 0 0 0 3 10.5v3A1.5 1.5 0 0 0 4.5 15H6V9Z"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>
+      </button>
+
+      <button onclick="resetGame()" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-950/50 transition-colors" title="Reset All Recipes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- WORKSPACE -->
+  <main class="flex-1 max-w-[1700px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
+    
+    <!-- LEFT PANEL: Library Index (SPAN 4) -->
+    <section class="lg:col-span-4 border-r border-slate-900 flex flex-col h-[calc(100vh-65px)] bg-slate-950/30">
+      <div class="p-4 border-b border-slate-900 space-y-3">
+        <div class="flex justify-between items-center bg-slate-900/50 p-2.5 rounded-xl border border-slate-850">
+          <span class="text-xs text-slate-400 font-mono tracking-wider">Library Index</span>
+          <span id="counter-discovered" class="text-sm font-semibold font-mono text-emerald-400">4 unlocked</span>
+        </div>
+
+        <div class="relative">
+          <span class="absolute inset-y-0 left-3 flex items-center text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <input 
+            id="search-input"
+            type="text"
+            oninput="triggerFilter()"
+            placeholder="Search compounds or formulas..."
+            class="w-full bg-slate-900 border border-slate-800/80 rounded-xl py-2 pl-9 pr-4 text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 text-slate-200 transition-colors"
+          />
+        </div>
+      </div>
+
+      <!-- Categories row -->
+      <div class="px-3.5 py-2 border-b border-slate-900 overflow-x-auto flex space-x-1.5 scrollbar-thin">
+        <button onclick="changeCategory('All')" id="cat-All" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-indigo-600/20 text-indigo-300 border border-indigo-500/40">All</button>
+        <button onclick="changeCategory('Primal')" id="cat-Primal" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950">Primal</button>
+        <button onclick="changeCategory('Atmosphere')" id="cat-Atmosphere" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950">Atmosphere</button>
+        <button onclick="changeCategory('Materials')" id="cat-Materials" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950">Materials</button>
+        <button onclick="changeCategory('Flora & Fauna')" id="cat-Flora" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950">Flora & Fauna</button>
+        <button onclick="changeCategory('Cosmic')" id="cat-Cosmic" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950">Cosmic</button>
+        <button onclick="changeCategory('Tech')" id="cat-Tech" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950">Tech</button>
+        <button onclick="changeCategory('Mythic')" id="cat-Mythic" class="cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950">Mythic</button>
+      </div>
+
+      <!-- Inventory List -->
+      <div class="flex-1 overflow-y-auto p-4" id="inventory-grid">
+        <!-- Spawned dynamically -->
+      </div>
+    </section>
+
+    <!-- CENTER PANEL: Fusion Desk & Altar (SPAN 5) -->
+    <section class="lg:col-span-12 xl:col-span-5 lg:order-2 flex flex-col justify-between h-[calc(100vh-65px)] bg-slate-950 relative border-r border-slate-900">
+      
+      <div class="flex-1 flex flex-col items-center justify-center p-6 relative">
+        <!-- Alchemy Rings background -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+          <div class="absolute w-[34rem] h-[34rem] rounded-full border border-slate-900/40 animate-spin-slow"></div>
+          <div class="absolute w-[22rem] h-[22rem] rounded-full border-2 border-indigo-500/5 animate-pulse-slow"></div>
+        </div>
+
+        <div class="w-full max-w-md flex flex-col items-center space-y-12 z-10">
+          
+          <div class="text-center space-y-1 bg-slate-900/40 p-2 px-4 rounded-xl border border-slate-850 inline-block">
+            <span class="text-xs uppercase tracking-widest font-mono text-amber-500 font-medium">Alchemy Circle</span>
+            <p class="text-[11px] text-slate-400">Place two elements inside target parameters</p>
+          </div>
+
+          <!-- SLOTS -->
+          <div class="w-full grid grid-cols-2 gap-4 relative justify-center items-center">
+            
+            <div class="absolute top-1/2 left-1/4 right-1/4 h-[1px] bg-indigo-500/10 -translate-y-1/2 pointer-events-none"></div>
+
+            <!-- SLOT A -->
+            <div class="flex flex-col items-center space-y-3">
+              <span class="text-[10px] font-mono text-slate-500 tracking-wider uppercase">Ingredient A</span>
+              <div id="slot-a-container" onclick="clearSlot('A')" class="w-28 h-28 rounded-full border-2 border-dashed border-slate-800 bg-slate-950/40 hover:border-slate-700/50 flex flex-col items-center justify-center cursor-pointer transition-all">
+                <span class="text-3xl text-slate-700 font-light">+</span>
+                <span class="text-[10px] uppercase font-mono tracking-wider text-slate-700 mt-1 select-none">Empty</span>
+              </div>
+            </div>
+
+            <!-- SLOT B -->
+            <div class="flex flex-col items-center space-y-3">
+              <span class="text-[10px] font-mono text-slate-500 tracking-wider uppercase">Ingredient B</span>
+              <div id="slot-b-container" onclick="clearSlot('B')" class="w-28 h-28 rounded-full border-2 border-dashed border-slate-800 bg-slate-950/40 hover:border-slate-700/50 flex flex-col items-center justify-center cursor-pointer transition-all">
+                <span class="text-3xl text-slate-700 font-light">+</span>
+                <span class="text-[10px] uppercase font-mono tracking-wider text-slate-700 mt-1 select-none">Empty</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- FOOTER WORKSPACE ACTIONS -->
+          <div class="w-full space-y-4">
+            
+            <!-- Progress strip -->
+            <div id="progress-strip" class="hidden w-full bg-slate-900/60 p-3.5 rounded-xl border border-indigo-500/20 text-center text-xs font-mono text-indigo-300">
+              Fusing State Material Forms...
+            </div>
+
+            <div class="flex items-center space-x-3.5">
+              <button onclick="cleanWorkspace()" class="py-3 px-4 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 font-medium hover:text-white hover:border-slate-700 transition-colors text-sm">
+                Clean Altar
+              </button>
+              <button onclick="fuseElements()" id="btn-fuse" class="flex-1 py-3 px-6 rounded-xl bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed font-semibold text-sm transition-all flex items-center justify-center space-x-2">
+                <span>Fuse Elements</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- HINTS ORACLE -->
+      <div class="p-4 bg-slate-950/50 border-t border-slate-900/80">
+        <div class="p-3.5 rounded-2xl bg-slate-900/30 border border-indigo-950/50 flex space-x-3.5 items-start">
+          <div class="w-10 h-10 rounded-full bg-indigo-950 border border-indigo-800/40 flex items-center justify-center text-base shadow-md">
+            🧙‍♂️
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-1">
+              <h5 class="text-[11px] font-semibold font-mono uppercase tracking-wider text-indigo-400">Sphinx Riddle Oracle</h5>
+              <button onclick="getOracleHint()" class="text-[10px] text-emerald-400 hover:text-emerald-300 underline font-mono">Ask Riddle</button>
+            </div>
+            <p id="oracle-text" class="text-xs text-slate-400 leading-relaxed italic">
+              "Weave basic primals together. Try fusing Water and Fire, or Earth and Rain to generate physical forms."
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: History & Achievements (SPAN 3) -->
+    <section class="lg:col-span-3 lg:order-3 flex flex-col h-[calc(100vh-65px)] bg-slate-950/50">
+      
+      <div class="p-4 border-b border-slate-900 flex items-center space-x-2 bg-slate-950/25">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="text-xs font-semibold uppercase font-mono tracking-wider text-slate-300">Chronicle logs</span>
+      </div>
+
+      <!-- Divided lists -->
+      <div class="flex-1 overflow-y-auto divide-y divide-slate-900/80">
+        
+        <!-- Section: Transmutation list -->
+        <div class="p-4 space-y-3">
+          <div class="flex justify-between items-center text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+            <span>Combination Log</span>
+            <span id="counter-history">0 logs</span>
+          </div>
+          <div id="history-container" class="space-y-1.5 max-h-[250px] overflow-y-auto">
+            <p class="text-xs italic text-slate-600 py-4 text-center">Your fusion recipes will be logged here.</p>
+          </div>
+        </div>
+
+        <!-- Section: Achievements -->
+        <div class="p-4 space-y-3">
+          <div class="flex justify-between items-center text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+            <span>Guild Badges</span>
+            <span id="counter-badges">0 / 6</span>
+          </div>
+
+          <div class="space-y-2" id="achievements-list">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TRANSMUTATION RESULT MODAL -->
+  <div id="result-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div id="modal-card" class="max-w-md w-full rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center space-y-5 shadow-2xl relative">
+      
+      <div id="badge-discovery" class="inline-flex py-0.5 px-2 bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-semibold text-emerald-400 uppercase tracking-widest rounded-full font-mono">
+        New Formula Discovered
+      </div>
+
+      <div class="text-7xl py-2 animate-float selection:bg-transparent" id="modal-emoji">
+        🧪
+      </div>
+
+      <div class="space-y-1.5">
+        <h2 id="modal-title" class="text-2xl font-bold font-display uppercase tracking-tight text-white">Compound Name</h2>
+        <span id="modal-category" class="inline-block px-2 py-0.5 bg-slate-950 text-[10px] text-slate-400 font-mono tracking-wider uppercase rounded">Category</span>
+        <p id="modal-description" class="text-xs text-slate-300 italic px-2 pt-1">Description snippet goes here.</p>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="closeModal()" class="w-full py-2.5 px-4 bg-white text-slate-950 font-bold text-sm tracking-wide rounded-xl hover:bg-slate-100 transition-all">
+          Retrieve to Library
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SETUP & CODE SCRIPTS -->
+  <script>
+    // System Config
+    let soundOn = true;
+    let selectedCategory = 'All';
+
+    // Primal base set
+    const INITIAL_ELEMENTS = [
+      { name: "Water", emoji: "💧", description: "The nourishing, shapeless primal fluid of life.", category: "Primal", color: "sky" },
+      { name: "Fire", emoji: "🔥", description: "The volatile, destructive force of alchemical transformation.", category: "Primal", color: "amber" },
+      { name: "Earth", emoji: "🪨", description: "The ancient, solid and stable soil of physical foundation.", category: "Primal", color: "slate" },
+      { name: "Air", emoji: "💨", description: "The light, invisible vital gas of floatation and motion.", category: "Primal", color: "sky" }
+    ];
+
+    // State Variables
+    let discovered = [...INITIAL_ELEMENTS];
+    let activeSlotA = null;
+    let activeSlotB = null;
+    let blendHistory = [];
+    
+    // Core recipes (Deterministic presets)
+    const PRESETS = {
+      "Air+Fire": { name: "Energy", emoji: "⚡", description: "Charged atmosphere humming with active raw power.", category: "Primal", color: "amber" },
+      "Earth+Fire": { name: "Lava", emoji: "🌋", description: "Molten rock bubbling with intense subterranean heat.", category: "Primal", color: "amber" },
+      "Earth+Water": { name: "Mud", emoji: "💩", description: "Soggy soft soil blending water and earth.", category: "Primal", color: "amber" },
+      "Air+Water": { name: "Rain", emoji: "🌧️", description: "Water condensing and falling from the atmosphere.", category: "Atmosphere", color: "sky" },
+      "Earth+Rain": { name: "Plant", emoji: "🌱", description: "A tender sprout rising from enriched, watered earth.", category: "Flora & Fauna", color: "emerald" },
+      "Fire+Lava": { name: "Stone", emoji: "🪨", description: "Hardened basalt formed from cooled igneous flow.", category: "Materials", color: "slate" },
+      "Fire+Plant": { name: "Charcoal", emoji: "🔥", description: "The carbonized remnants of combusted flora.", category: "Materials", color: "slate" },
+      "Plant+Water": { name: "Swamp", emoji: "🐊", description: "A murky, humid wetland teaming with decay.", category: "Atmosphere", color: "sky" },
+      "Energy+Swamp": { name: "Life", emoji: "🧬", description: "A miraculous spark animating physical matter.", category: "Mythic", color: "violet" },
+      "Stone+Stone": { name: "Metal", emoji: "⛓️", description: "Refined ore extracted through pressure and furnace.", category: "Materials", color: "slate" },
+      "Life+Mud": { name: "Clay", emoji: "🏺", description: "Fine-grained soil perfect for modeling bodies.", category: "Materials", color: "slate" },
+      "Clay+Life": { name: "Human", emoji: "🧑", description: "A conscious, creative dweller of the physical plane.", category: "Flora & Fauna", color: "emerald" },
+      "Human+Metal": { name: "Tool", emoji: "🔨", description: "An extension of human intellect forged in steel.", category: "Tech", color: "cyan" },
+      "Earth+Earth": { name: "Pressure", emoji: "💥", description: "Subterranean forces pushing atoms to their limit.", category: "Primal", color: "amber" },
+      "Pressure+Stone": { name: "Diamond", emoji: "💎", description: "Crystalline carbon of peerless purity and density.", category: "Materials", color: "slate" },
+      "Human+Human": { name: "Love", emoji: "❤️", description: "An invisible bond that transcends simple chemistry.", category: "Mythic", color: "rose" },
+      "Air+Energy": { name: "Lightning", emoji: "🌩️", description: "Electromagnetic atmospheric sparks.", category: "Atmosphere", color: "sky" },
+      "Life+Lightning": { name: "Ghost", emoji: "👻", description: "The spectral residue of a physical spirit.", category: "Mythic", color: "violet" },
+      "Air+Stone": { name: "Sand", emoji: "⏳", description: "Pulverized mineral grains worn down by winds.", category: "Materials", color: "slate" },
+      "Fire+Sand": { name: "Glass", emoji: "🧪", description: "Frit consolidated into a transparent glass state.", category: "Materials", color: "slate" },
+      "Glass+Lightning": { name: "Lightbulb", emoji: "💡", description: "A vacuum filament defying gravity with light.", category: "Tech", color: "cyan" }
+    };
+
+    const ACHIEVEMENT_TEMPLATES = [
+      { id: "apprentice", title: "Apprentice Scholar", description: "Unlock 8 element structures.", target: 8, icon: "🌱" },
+      { id: "scholar", title: "Ancient Archmage", description: "Unlock 14 element structures.", target: 14, icon: "📚" },
+      { id: "grandmaster", title: "Omniscient Alchemist", description: "Unlock 20 element structures.", target: 20, icon: "👑" },
+      { id: "mythmaker", title: "Unbound Mythos", description: "Discover any 'Mythic' category element.", type: "category", match: "Mythic", icon: "🦄" },
+      { id: "tech_age", title: "Cybernetic Genesis", description: "Discover any 'Tech' category element.", type: "category", match: "Tech", icon: "🤖" },
+      { id: "nature_bloom", title: "Nature's Blossom", description: "Discover any 'Flora & Fauna' category element.", type: "category", match: "Flora & Fauna", icon: "🌱" }
+    ];
+
+    const COLOR_ACCENTS = {
+      sky: "bg-sky-950/40 text-sky-300 border-sky-500/30 shadow-sky-500/25",
+      amber: "bg-amber-950/40 text-amber-300 border-amber-500/30 shadow-amber-500/25",
+      slate: "bg-slate-900/40 text-slate-300 border-slate-500/30 shadow-slate-500/25",
+      emerald: "bg-emerald-950/40 text-emerald-300 border-emerald-500/30 shadow-emerald-500/25",
+      indigo: "bg-indigo-950/40 text-indigo-300 border-indigo-500/30 shadow-indigo-500/25",
+      cyan: "bg-cyan-950/40 text-cyan-300 border-cyan-500/30 shadow-cyan-500/25",
+      violet: "bg-violet-950/40 text-violet-300 border-violet-500/30 shadow-violet-500/25",
+      rose: "bg-rose-950/40 text-rose-300 border-rose-500/30 shadow-rose-500/25"
+    };
+
+    const HINT_POOL = [
+      "Fuse Energy and Swamp to summon dynamic Spark of Life.",
+      "Combine Stone and Stone to form raw refined Metal.",
+      "Mingle Air with Energy to call lightning from celestial clouds.",
+      "Breathe Fire on Sand to synthesize pure clear Glass.",
+      "Pressure applied directly to Stone yields reflective Crystalline Diamond.",
+      "Bring together Clay with Life to model the form of Human."
+    ];
+
+    // Sound engine (Web Audio API)
+    function playSound(type) {
+      if (!soundOn) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = ctx.currentTime;
+        
+        if (type === 'click') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(640, now + 0.08);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(now + 0.1);
+        } else if (type === 'clean') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.linearRampToValueAtTime(140, now + 0.12);
+          gain.gain.setValueAtTime(0.05, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(now + 0.12);
+        } else if (type === 'success') {
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.04, now + idx * 0.07 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.07);
+            osc.stop(now + idx * 0.07 + 0.3);
+          });
+        } else if (type === 'unlock') {
+          [329.63, 392.00, 523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.05, now + idx * 0.05 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.05);
+            osc.stop(now + idx * 0.05 + 0.35);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // Toggle sound states
+    function toggleSound() {
+      soundOn = !soundOn;
+      document.getElementById('icon-sound-on').classList.toggle('hidden', !soundOn);
+      document.getElementById('icon-sound-off').classList.toggle('hidden', soundOn);
+      playSound('click');
+    }
+
+    // Restore storage on load
+    function init() {
+      const saved = localStorage.getItem('stand_discovered');
+      const savedHist = localStorage.getItem('stand_history');
+      if (saved) discovered = JSON.parse(saved);
+      if (savedHist) blendHistory = JSON.parse(savedHist);
+      
+      renderInventory();
+      renderAchievements();
+      renderHistory();
+      updateCounters();
+    }
+
+    // Update statistics meters
+    function updateCounters() {
+      document.getElementById('counter-discovered').textContent = `${discovered.length} unlocked`;
+      document.getElementById('counter-history').textContent = `${blendHistory.length} logs`;
+    }
+
+    // Render library blocks
+    function renderInventory() {
+      const grid = document.getElementById('inventory-grid');
+      const search = document.getElementById('search-input').value.toLowerCase();
+      
+      grid.innerHTML = '';
+      
+      const filtered = discovered.filter(el => {
+        const matchesCategory = selectedCategory === 'All' || el.category === selectedCategory;
+        const matchesSearch = el.name.toLowerCase().includes(search) || el.category.toLowerCase().includes(search);
+        return matchesCategory && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="h-40 flex flex-col items-center justify-center text-[11px] text-slate-500 font-mono">No elements matching filters</div>`;
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = "grid grid-cols-2 gap-2";
+
+      filtered.forEach(el => {
+        const styleName = el.color || 'slate';
+        const colorClass = COLOR_ACCENTS[styleName] || COLOR_ACCENTS.slate;
+        
+        const isSelected = (activeSlotA && activeSlotA.name === el.name) || (activeSlotB && activeSlotB.name === el.name);
+        const ringBorder = isSelected ? 'ring-2 ring-indigo-500 border-transparent scale-102 font-bold' : 'hover:border-slate-700';
+
+        const btn = document.createElement('button');
+        btn.className = `p-3 rounded-xl border text-left flex items-start space-x-2.5 cursor-pointer text-xs transition-all ${colorClass} ${ringBorder}`;
+        btn.onclick = () => selectElement(el);
+        btn.innerHTML = `
+          <span class="text-xl">${el.emoji}</span>
+          <div class="min-w-0 flex-1">
+            <h4 class="font-semibold text-slate-200 truncate leading-none mb-1">${el.name}</h4>
+            <p class="text-[9px] text-slate-500 uppercase tracking-wide font-mono font-medium truncate">${el.category}</p>
+          </div>
+        `;
+        wrapper.appendChild(btn);
+      });
+
+      grid.appendChild(wrapper);
+    }
+
+    // Select items
+    function selectElement(el) {
+      playSound('click');
+      if (!activeSlotA) {
+        activeSlotA = el;
+      } else if (!activeSlotB) {
+        activeSlotB = el;
+      } else {
+        activeSlotB = el;
+      }
+      renderActiveSlots();
+      renderInventory();
+    }
+
+    // Put render layout for slots
+    function renderActiveSlots() {
+      const containerA = document.getElementById('slot-a-container');
+      const containerB = document.getElementById('slot-b-container');
+      const btn = document.getElementById('btn-fuse');
+
+      // Slot A
+      if (activeSlotA) {
+        const accent = COLOR_ACCENTS[activeSlotA.color || 'slate'];
+        containerA.className = `w-28 h-28 rounded-full border-2 flex flex-col items-center justify-center cursor-pointer shadow-lg transition-all ${accent}`;
+        containerA.innerHTML = `
+          <span class="text-3xl animate-float">${activeSlotA.emoji}</span>
+          <span class="text-[11px] font-semibold text-slate-200 mt-2 truncate w-20 text-center">${activeSlotA.name}</span>
+          <span class="absolute top-1 right-2 text-[8px] text-slate-500">✕</span>
+        `;
+      } else {
+        containerA.className = "w-28 h-28 rounded-full border-2 border-dashed border-slate-800 bg-slate-950/40 hover:border-slate-700/50 flex flex-col items-center justify-center cursor-pointer transition-all";
+        containerA.innerHTML = `
+          <span class="text-3xl text-slate-700 font-light">+</span>
+          <span class="text-[10px] uppercase font-mono tracking-wider text-slate-700 mt-1 select-none">Empty</span>
+        `;
+      }
+
+      // Slot B
+      if (activeSlotB) {
+        const accent = COLOR_ACCENTS[activeSlotB.color || 'slate'];
+        containerB.className = `w-28 h-28 rounded-full border-2 flex flex-col items-center justify-center cursor-pointer shadow-lg transition-all ${accent}`;
+        containerB.innerHTML = `
+          <span class="text-3xl animate-float">${activeSlotB.emoji}</span>
+          <span class="text-[11px] font-semibold text-slate-200 mt-2 truncate w-20 text-center">${activeSlotB.name}</span>
+          <span class="absolute top-1 right-2 text-[8px] text-slate-500">✕</span>
+        `;
+      } else {
+        containerB.className = "w-28 h-28 rounded-full border-2 border-dashed border-slate-800 bg-slate-950/40 hover:border-slate-700/50 flex flex-col items-center justify-center cursor-pointer transition-all";
+        containerB.innerHTML = `
+          <span class="text-3xl text-slate-700 font-light">+</span>
+          <span class="text-[10px] uppercase font-mono tracking-wider text-slate-700 mt-1 select-none">Empty</span>
+        `;
+      }
+
+      // Action button active styles
+      if (activeSlotA && activeSlotB) {
+        btn.className = "flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white cursor-pointer hover:shadow-lg font-semibold text-sm transition-all flex items-center justify-center space-x-2";
+      } else {
+        btn.className = "flex-1 py-3 px-6 rounded-xl bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed font-semibold text-sm transition-all flex items-center justify-center space-x-2";
+      }
+    }
+
+    // Remove slot items
+    function clearSlot(slot) {
+      playSound('clean');
+      if (slot === 'A') activeSlotA = null;
+      else activeSlotB = null;
+      renderActiveSlots();
+      renderInventory();
+    }
+
+    function cleanWorkspace() {
+      playSound('clean');
+      activeSlotA = null;
+      activeSlotB = null;
+      renderActiveSlots();
+      renderInventory();
+    }
+
+    // Procedural blend recipe rule generator
+    function proceduralBlend(nameA, nameB) {
+      // Lexicographical ordering to ensure order safety
+      const key = [nameA, nameB].sort().join("+");
+
+      // Verify preset combinations first
+      if (PRESETS[key]) return PRESETS[key];
+
+      // Procedural code fallback hash
+      let hash = 0;
+      for (let i = 0; i < key.length; i++) {
+        hash = key.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      hash = Math.abs(hash);
+
+      const categories = ["Materials", "Flora & Fauna", "Cosmic", "Tech", "Mythic", "Atmosphere"];
+      const colors = ["emerald", "indigo", "cyan", "violet", "sky", "rose"];
+      const emojis = ["✨", "🛡️", "🧬", "☄️", "⚓", "🔮", "🎡", "🌿", "⚜️", "🍂"];
+
+      const catIdx = hash % categories.length;
+      const colIdx = hash % colors.length;
+      const emoIdx = hash % emojis.length;
+
+      // Compound naming mix
+      const partA = nameA.substring(0, Math.ceil(nameA.length / 2));
+      const partB = nameB.substring(nameB.length / 2);
+      const outputName = partA + partB.toLowerCase();
+      const capitalized = outputName.charAt(0).toUpperCase() + outputName.slice(1);
+
+      return {
+        name: capitalized,
+        emoji: emojis[emoIdx],
+        description: `Procedural material synthesis of ${nameA} and ${nameB}.`,
+        category: categories[catIdx],
+        color: colors[colIdx]
+      };
+    }
+
+    // Fuse process
+    function fuseElements() {
+      if (!activeSlotA || !activeSlotB) return;
+      
+      const btn = document.getElementById('btn-fuse');
+      const progress = document.getElementById('progress-strip');
+      
+      btn.classList.add('hidden');
+      progress.classList.remove('hidden');
+      
+      playSound('click');
+
+      setTimeout(() => {
+        const result = proceduralBlend(activeSlotA.name, activeSlotB.name);
+        
+        const isNew = !discovered.some(e => e.name.toLowerCase() === result.name.toLowerCase());
+        
+        if (isNew) {
+          discovered = [result, ...discovered];
+          localStorage.setItem('stand_discovered', JSON.stringify(discovered));
+          playSound('success');
+          document.getElementById('badge-discovery').classList.remove('hidden');
+        } else {
+          playSound('click');
+          document.getElementById('badge-discovery').classList.add('hidden');
+        }
+
+        // Add history log item
+        const log = {
+          id: Math.random().toString(36).substring(4),
+          elementA: activeSlotA,
+          elementB: activeSlotB,
+          result: result
+        };
+        blendHistory = [log, ...blendHistory];
+        localStorage.setItem('stand_history', JSON.stringify(blendHistory));
+
+        // Display results modal overlay
+        showModal(result, isNew);
+        
+        // Clean Workspace elements
+        activeSlotA = null;
+        activeSlotB = null;
+
+        progress.classList.add('hidden');
+        btn.classList.remove('hidden');
+
+        renderActiveSlots();
+        renderInventory();
+        renderHistory();
+        renderAchievements();
+        updateCounters();
+
+      }, 1000);
+    }
+
+    // Show modal results
+    function showModal(el, isNew) {
+      const modal = document.getElementById('result-modal');
+      const card = document.getElementById('modal-card');
+      const emoji = document.getElementById('modal-emoji');
+      const title = document.getElementById('modal-title');
+      const cat = document.getElementById('modal-category');
+      const desc = document.getElementById('modal-description');
+
+      emoji.textContent = el.emoji;
+      title.textContent = el.name;
+      cat.textContent = el.category;
+      desc.textContent = el.description;
+
+      const styleName = el.color || 'slate';
+      const colorClass = COLOR_ACCENTS[styleName] || COLOR_ACCENTS.slate;
+
+      card.className = `max-w-md w-full rounded-2xl border p-6 text-center space-y-5 shadow-2xl relative ${colorClass}`;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      playSound('click');
+      document.getElementById('result-modal').classList.add('hidden');
+    }
+
+    // Filter list category trigger
+    function changeCategory(cat) {
+      selectedCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.className = "cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900/45 text-slate-400 border border-transparent hover:bg-slate-950";
+      });
+      document.getElementById(`cat-${cat.replace(' & ', '')}`).className = "cat-pill py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap bg-indigo-600/20 text-indigo-300 border border-indigo-500/40";
+      playSound('click');
+      renderInventory();
+    }
+
+    function triggerFilter() {
+      renderInventory();
+    }
+
+    // Chronicle Logs rendering
+    function renderHistory() {
+      const container = document.getElementById('history-container');
+      container.innerHTML = '';
+
+      if (blendHistory.length === 0) {
+        container.innerHTML = `<p class="text-xs italic text-slate-600 py-4 text-center">Your fusion recipes will be logged here.</p>`;
+        return;
+      }
+
+      blendHistory.forEach(item => {
+        const div = document.createElement('div');
+        div.className = "p-2.5 rounded-xl bg-slate-900/35 border border-slate-900 hover:border-slate-800 text-xs flex items-center justify-between cursor-pointer transition-all";
+        div.onclick = () => {
+          playSound('click');
+          activeSlotA = discovered.find(e => e.name.toLowerCase() === item.elementA.name.toLowerCase()) || item.elementA;
+          activeSlotB = discovered.find(e => e.name.toLowerCase() === item.elementB.name.toLowerCase()) || item.elementB;
+          renderActiveSlots();
+          renderInventory();
+        };
+
+        div.innerHTML = `
+          <div class="flex items-center space-x-1 font-mono text-slate-400">
+            <span class="truncate max-w-[45px]">${item.elementA.emoji} ${item.elementA.name}</span>
+            <span class="text-indigo-500 font-mono">+</span>
+            <span class="truncate max-w-[45px]">${item.elementB.emoji} ${item.elementB.name}</span>
+          </div>
+          <span class="text-indigo-600 px-1">→</span>
+          <div class="flex items-center space-x-1 font-semibold text-slate-200">
+            <span>${item.result.emoji}</span>
+            <span class="truncate max-w-[50px]">${item.result.name}</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Achievements calculation
+    function renderAchievements() {
+      const parent = document.getElementById('achievements-list');
+      const counterUnl = document.getElementById('counter-badges');
+      parent.innerHTML = '';
+
+      let unlockCount = 0;
+      let newlyUnlockedList = [];
+
+      const savedUnlocked = JSON.parse(localStorage.getItem('stand_badges') || "[]");
+
+      ACHIEVEMENT_TEMPLATES.forEach(ach => {
+        let isUnlocked = savedUnlocked.includes(ach.id);
+
+        if (!isUnlocked) {
+          if (ach.target && discovered.length >= ach.target) {
+            isUnlocked = true;
+            newlyUnlockedList.push(ach.id);
+          }
+          if (ach.type === 'category' && discovered.some(e => e.category === ach.match)) {
+            isUnlocked = true;
+            newlyUnlockedList.push(ach.id);
+          }
+        }
+
+        if (isUnlocked) unlockCount++;
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border flex items-center space-x-3.5 transition-all text-xs ${
+          isUnlocked 
+            ? "bg-slate-900/50 border-indigo-500/20 text-slate-200" 
+            : "bg-slate-950/30 border-slate-900 opacity-40 text-slate-600"
+        }`;
+
+        card.innerHTML = `
+          <div class="text-2xl">${ach.icon}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center space-x-1.5 font-semibold">
+              <span class="${isUnlocked ? 'text-slate-200' : 'text-slate-600'}">${ach.title}</span>
+              ${isUnlocked ? '<span class="text-emerald-400">✓</span>' : ''}
+            </div>
+            <p class="text-[10px] mt-0.5 leading-snug ${isUnlocked ? 'text-slate-400' : 'text-slate-600'}">${ach.description}</p>
+          </div>
+        `;
+        parent.appendChild(card);
+      });
+
+      if (newlyUnlockedList.length > 0) {
+        const unified = [...savedUnlocked, ...newlyUnlockedList];
+        localStorage.setItem('stand_badges', JSON.stringify(unified));
+        playSound('unlock');
+      }
+
+      counterUnl.textContent = `${unlockCount} / ${ACHIEVEMENT_TEMPLATES.length}`;
+    }
+
+    // Ask riddle oracle response
+    function getOracleHint() {
+      playSound('click');
+      const text = document.getElementById('oracle-text');
+      text.textContent = 'Deciphering element patterns...';
+      setTimeout(() => {
+        const randomIndex = Math.floor(Math.random() * HINT_POOL.length);
+        text.textContent = `"${HINT_POOL[randomIndex]}"`;
+      }, 350);
+    }
+
+    // Clear progression data
+    function resetGame() {
+      if (confirm("Reset standalone library? All discovered assets and achievements will be locked.")) {
+        playSound('clean');
+        localStorage.removeItem('stand_discovered');
+        localStorage.removeItem('stand_history');
+        localStorage.removeItem('stand_badges');
+        discovered = [...INITIAL_ELEMENTS];
+        blendHistory = [];
+        activeSlotA = null;
+        activeSlotB = null;
+        
+        renderActiveSlots();
+        renderInventory();
+        renderHistory();
+        renderAchievements();
+        updateCounters();
+      }
+    }
+
+    // Bootstrap Game
+    init();
+  </script>
+</body>
+</html>
+
+
+// ==========================================
 // FILE: src/App.tsx
 // ==========================================
 
@@ -126,6 +961,23 @@ export default function App() {
     }).catch(() => {
       playSound("error");
     });
+  };
+
+  const downloadFile = (fileName: string, content: string) => {
+    try {
+      const blob = new Blob([content], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      playSound("success");
+    } catch (err) {
+      playSound("error");
+    }
   };
 
   // --- Initialize state from LocalStorage ---
@@ -1078,6 +1930,15 @@ export default function App() {
                       <span className="text-[10px] font-mono text-slate-500 px-2 select-none">
                         {codeFiles[activeCodeIndex]?.path}
                       </span>
+                      {codeFiles[activeCodeIndex]?.path === "standalone_game.html" && (
+                        <button
+                          onClick={() => downloadFile("standalone_game.html", codeFiles[activeCodeIndex].content)}
+                          className="p-1 px-3.5 py-1.5 rounded-lg bg-emerald-650 text-white hover:bg-emerald-555 transition-all text-[11px] font-semibold flex items-center space-x-1.5 animate-pulse"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download Standalone</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => copyToClipboard(codeFiles[activeCodeIndex].content, activeCodeIndex)}
                         className="p-1 px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-all text-[11px] font-semibold flex items-center space-x-1.5"
@@ -1375,6 +2236,7 @@ Provide a cryptic, mystical, positive hint or riddle about one possible element 
 app.get("/api/code", (req, res) => {
   try {
     const filesToRead = [
+      { path: "standalone_game.html", name: "standalone_game.html (Standalone Game)" },
       { path: "src/App.tsx", name: "App.tsx (Frontend Core)" },
       { path: "server.ts", name: "server.ts (Backend Server)" },
       { path: "src/types.ts", name: "types.ts (Interfaces)" },
